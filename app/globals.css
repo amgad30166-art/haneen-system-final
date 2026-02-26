@@ -1,0 +1,157 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800&display=swap');
+
+:root {
+  --navy-500: #1B2B6B;
+  --navy-600: #0F1D4A;
+  --navy-700: #0A1435;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  direction: rtl;
+}
+
+body {
+  font-family: 'Cairo', Arial, sans-serif;
+  background-color: #F9FAFB;
+  color: #1F2937;
+}
+
+/* All labels bold */
+label, th, .label {
+  font-weight: 700 !important;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #F3F4F6;
+}
+::-webkit-scrollbar-thumb {
+  background: #1B2B6B;
+  border-radius: 4px;
+}
+
+/* Input styling */
+input, select, textarea {
+  font-family: 'Cairo', Arial, sans-serif;
+  border: 2px solid #D1D5DB;
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 14px;
+  transition: border-color 0.2s;
+}
+input:focus, select:focus, textarea:focus {
+  border-color: #1B2B6B;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(27, 43, 107, 0.1);
+}
+
+/* Table alternating rows */
+table tbody tr:nth-child(even) {
+  background-color: #F9FAFB;
+}
+table tbody tr:hover {
+  background-color: #EBF0FF;
+}
+
+/* Status badge */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 12px;
+  border-radius: 9999px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/* Button styles */
+.btn-primary {
+  background-color: #1B2B6B;
+  color: white;
+  padding: 10px 24px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 14px;
+  transition: background-color 0.2s;
+  border: none;
+  cursor: pointer;
+}
+.btn-primary:hover {
+  background-color: #0F1D4A;
+}
+
+.btn-secondary {
+  background-color: white;
+  color: #1B2B6B;
+  padding: 10px 24px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 14px;
+  border: 2px solid #1B2B6B;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.btn-secondary:hover {
+  background-color: #EBF0FF;
+}
+
+.btn-danger {
+  background-color: #DC2626;
+  color: white;
+  padding: 10px 24px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 14px;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+.btn-danger:hover {
+  background-color: #B91C1C;
+}
+
+/* Card */
+.card {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  border: 1px solid #E5E7EB;
+  padding: 24px;
+}
+
+/* Sidebar */
+.sidebar-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: 8px;
+  color: #D1D5DB;
+  font-weight: 600;
+  font-size: 14px;
+  transition: all 0.2s;
+  text-decoration: none;
+}
+.sidebar-link:hover, .sidebar-link.active {
+  background-color: rgba(255,255,255,0.1);
+  color: white;
+}
+
+/* Print styles */
+@media print {
+  .no-print { display: none !important; }
+  body { background: white; }
+}
