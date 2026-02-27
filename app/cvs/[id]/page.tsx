@@ -10,6 +10,7 @@ import {
   NATIONALITIES, PROFESSIONS, RELIGIONS,
   MARITAL_STATUSES,
   ETHIOPIA_MEDICAL_VALIDITY, OTHER_MEDICAL_VALIDITY,
+  MIN_WORKER_AGE, MAX_WORKER_AGE,
 } from "@/lib/constants";
 import { ExternalOffice, CV } from "@/lib/types";
 import { toast } from "sonner";
@@ -87,9 +88,20 @@ export default function CVEditPage() {
     setProfilePhotoPreview(URL.createObjectURL(file));
   }
 
+  function validateAge(): boolean {
+    if (!cv?.date_of_birth) return true; // optional field
+    const age = Math.floor((Date.now() - new Date(cv.date_of_birth).getTime()) / (365.25 * 86400000));
+    if (age < MIN_WORKER_AGE || age > MAX_WORKER_AGE) {
+      toast.error(`عمر العاملة يجب أن يكون بين ${MIN_WORKER_AGE} و ${MAX_WORKER_AGE} سنة. العمر الحالي: ${age}`);
+      return false;
+    }
+    return true;
+  }
+
   async function handleSave() {
     if (!cv) return;
     if (!cv.external_office_id) { toast.error("اختر المكتب الخارجي"); return; }
+    if (!validateAge()) return;
 
     setSaving(true);
 
