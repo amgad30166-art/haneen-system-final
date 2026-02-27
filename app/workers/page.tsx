@@ -458,27 +458,6 @@ function WorkerCard({ worker: w, wa, onOpen }: {
           {w.new_or_experienced === "experienced" ? "⭐ خبرة" : "🌱 جديدة"}
         </div>
 
-        {/* Video badge — centered above salary, mobile-first */}
-        {w.video_url && (
-          <a
-            href={w.video_url}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={e => e.stopPropagation()}
-            className="absolute left-3 flex items-center gap-1 text-white font-bold rounded-full whitespace-nowrap transition-all hover:scale-105 active:scale-95"
-            style={{
-              bottom: "2.4rem",
-              fontSize: 10,
-              padding: "4px 8px 4px 6px",
-              background: "linear-gradient(135deg,#f43f5e,#be123c)",
-              boxShadow: "0 3px 10px rgba(244,63,94,0.6)",
-            }}
-          >
-            <Play size={6} fill="white" />
-            شاهد المقابلة
-          </a>
-        )}
-
         {/* Bottom overlay: name + salary */}
         <div className="absolute bottom-0 inset-x-0 p-3.5">
           <p className="text-white font-bold text-base leading-tight truncate mb-2">{w.worker_name}</p>
@@ -527,6 +506,14 @@ function WorkerCard({ worker: w, wa, onOpen }: {
             style={{ borderColor: "#0F1C4D", color: "#0F1C4D" }}>
             عرض السيرة
           </button>
+          {w.video_url && (
+            <a href={w.video_url} target="_blank" rel="noopener noreferrer"
+              className="flex-1 text-xs font-bold py-2.5 rounded-xl text-white text-center transition-all hover:opacity-90 flex items-center justify-center gap-1"
+              style={{ background: "linear-gradient(135deg,#f43f5e,#be123c)" }}>
+              <Play size={10} fill="white" />
+              فيديو
+            </a>
+          )}
           <a href={wa(`السلام عليكم، أرغب في الاستفسار عن العاملة: ${w.worker_name} — ${natLabel} — الراتب: ${w.salary.toLocaleString("en-US")} ر.س — رقم الجواز: ${w.passport_number}`)}
             target="_blank" rel="noopener noreferrer"
             className="flex-1 text-xs font-bold py-2.5 rounded-xl text-white text-center transition-all hover:opacity-90"
