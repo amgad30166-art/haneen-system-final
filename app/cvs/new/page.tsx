@@ -129,12 +129,12 @@ export default function NewCVPage() {
     const { error } = await supabase.from("cvs").insert({
       worker_name: form.worker_name,
       passport_number: form.passport_number,
-      date_of_birth: form.date_of_birth,
+      date_of_birth: form.date_of_birth || null,
       religion: form.religion,
       photo_url: photo_url || null,
       profile_photo: profile_photo || null,
       video_url: form.video_url || null,
-      medical_exam_date: form.medical_exam_date,
+      medical_exam_date: form.medical_exam_date || null,
       musaned_status: form.musaned_status,
       external_office_status: form.external_office_status,
       internal_status: form.internal_status,
@@ -238,8 +238,8 @@ export default function NewCVPage() {
               <input type="text" required value={form.passport_number} onChange={(e) => update("passport_number", e.target.value)} className="w-full" dir="ltr" />
             </div>
             <div>
-              <label className="block text-sm mb-1">تاريخ الميلاد * (العمر: 25-45)</label>
-              <input type="date" required value={form.date_of_birth} onChange={(e) => update("date_of_birth", e.target.value)} className="w-full" />
+              <label className="block text-sm mb-1">تاريخ الميلاد</label>
+              <input type="date" value={form.date_of_birth} onChange={(e) => update("date_of_birth", e.target.value)} className="w-full" />
             </div>
             <div>
               <label className="block text-sm mb-1">الديانة *</label>
@@ -302,8 +302,8 @@ export default function NewCVPage() {
               <input type="text" value={form.broker_name} onChange={(e) => update("broker_name", e.target.value)} className="w-full" />
             </div>
             <div>
-              <label className="block text-sm mb-1">تاريخ الفحص الطبي *</label>
-              <input type="date" required value={form.medical_exam_date} onChange={(e) => update("medical_exam_date", e.target.value)} className="w-full" />
+              <label className="block text-sm mb-1">تاريخ الفحص الطبي</label>
+              <input type="date" value={form.medical_exam_date} onChange={(e) => update("medical_exam_date", e.target.value)} className="w-full" />
             </div>
             <div>
               <label className="block text-sm mb-1">حالة مساند *</label>
