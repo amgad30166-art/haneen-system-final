@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase";
 import AuthLayout from "@/components/ui/AuthLayout";
 import PageHeader from "@/components/ui/PageHeader";
 import { useRouter } from "next/navigation";
-import { NATIONALITIES, PROFESSIONS, RELIGIONS, MARITAL_STATUSES } from "@/lib/constants";
+import { NATIONALITIES, PROFESSIONS, RELIGIONS, MARITAL_STATUSES, MIN_WORKER_AGE, MAX_WORKER_AGE } from "@/lib/constants";
 import { ExternalOffice } from "@/lib/types";
 import { toast } from "sonner";
 import { Save, Upload, X, Video } from "lucide-react";
@@ -69,8 +69,20 @@ export default function NewCVPage() {
     setProfilePhotoPreview(URL.createObjectURL(file));
   }
 
+  function validateAge(): boolean {
+    if (!form.date_of_birth) return false;
+    const dob = new Date(form.date_of_birth);
+    const age = Math.floor((Date.now() - dob.getTime()) / (365.25 * 86400000));
+    if (age < MIN_WORKER_AGE || age > MAX_WORKER_AGE) {
+      toast.error(`عمر العاملة يجب أن يكون بين ${MIN_WORKER_AGE} و ${MAX_WORKER_AGE} سنة. العمر الحالي: ${age}`);
+      return false;
+    }
+    return true;
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (!validateAge()) return;
     if (!form.external_office_id) {
       toast.error("اختر المكتب الخارجي");
       return;
@@ -226,7 +238,7 @@ export default function NewCVPage() {
               <input type="text" required value={form.passport_number} onChange={(e) => update("passport_number", e.target.value)} className="w-full" dir="ltr" />
             </div>
             <div>
-              <label className="block text-sm mb-1">تاريخ الميلاد *</label>
+              <label className="block text-sm mb-1">تاريخ الميلاد * (العمر: 25-45)</label>
               <input type="date" required value={form.date_of_birth} onChange={(e) => update("date_of_birth", e.target.value)} className="w-full" />
             </div>
             <div>
