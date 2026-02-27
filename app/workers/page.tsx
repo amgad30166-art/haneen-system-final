@@ -569,13 +569,14 @@ function CVModal({ worker: w, wa, onClose }: {
 
   return (
     <>
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4" dir="rtl">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4" dir="rtl"
+      style={{ transform: "translateZ(0)" }}>
       {/* Backdrop */}
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
 
       {/* Dialog — row layout on desktop: photo RIGHT, details LEFT */}
       <div
-        className="relative bg-white w-full sm:max-w-3xl rounded-t-[2rem] sm:rounded-3xl overflow-hidden shadow-2xl max-h-[96vh] sm:h-[88vh] flex flex-col sm:flex-row"
+        className="relative bg-white w-full sm:max-w-3xl rounded-t-[2rem] sm:rounded-3xl overflow-hidden shadow-2xl max-h-[88vh] sm:h-[88vh] flex flex-col sm:flex-row"
         style={{ animation: "cvIn .35s cubic-bezier(.16,1,.3,1)" }}
       >
         {/* Close */}
@@ -591,8 +592,8 @@ function CVModal({ worker: w, wa, onClose }: {
           style={{ background: grad }}
           onClick={() => photoSrc && setPhotoOpen(true)}
         >
-          {/* Mobile: aspect-ratio spacer */}
-          <div className="sm:hidden" style={{ paddingBottom: "72%" }} />
+          {/* Mobile: aspect-ratio spacer — 80% gives more photo height */}
+          <div className="sm:hidden" style={{ paddingBottom: "80%" }} />
           {/* Full-body photo fills entire panel */}
           <div className="absolute inset-0">
             {(w.photo_url || w.profile_photo) ? (
