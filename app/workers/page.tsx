@@ -1,13 +1,13 @@
 "use client";
 
-import { useEffect, useState, useMemo, useCallback } from "react";
+import { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import { createClient } from "@/lib/supabase";
 import Image from "next/image";
 import {
   Phone, Search, MessageCircle, X, Shield,
   CheckCircle2, Users, Play, Star,
   Sparkles, MapPin, ArrowUpDown,
-  Heart, Clock, Globe,
+  Heart, Clock, Globe, ZoomIn,
 } from "lucide-react";
 import { NATIONALITIES, PROFESSIONS, COMPANY_INFO } from "@/lib/constants";
 
@@ -46,7 +46,7 @@ const NAT_ACCENT: Record<string, { bg: string; text: string; border: string }> =
 };
 const NAT_GRAD: Record<string, string> = {
   ethiopia:    "linear-gradient(160deg,#065f46,#059669)",
-  kenya:       "linear-gradient(160deg,#7f1d1d,#dc2626)",
+  kenya:       "linear-gradient(160deg,#0f172a,#1e3a5f)",
   uganda:      "linear-gradient(160deg,#78350f,#d97706)",
   philippines: "linear-gradient(160deg,#1e3a8a,#2563eb)",
   india:       "linear-gradient(160deg,#7c2d12,#ea580c)",
@@ -57,7 +57,6 @@ type SortKey = "default" | "salary_desc" | "salary_asc" | "age_asc";
 export default function PublicWorkersPage() {
   const [workers, setWorkers]       = useState<Worker[]>([]);
   const [loading, setLoading]       = useState(true);
-  const [search, setSearch]         = useState("");
   const [filterNat, setFilterNat]   = useState("");
   const [filterExp, setFilterExp]   = useState("");
   const [filterRel, setFilterRel]   = useState("");
@@ -84,19 +83,17 @@ export default function PublicWorkersPage() {
   const activeFilters = [filterNat, filterExp, filterRel, filterMarital].filter(Boolean).length;
 
   const filtered = useMemo(() => {
-    let list = workers.filter((w) => {
-      const q = search.toLowerCase();
-      return (!q || w.worker_name.toLowerCase().includes(q) || w.nationality.includes(q))
-        && (!filterNat || w.nationality === filterNat)
-        && (!filterExp || w.new_or_experienced === filterExp)
-        && (!filterRel || w.religion === filterRel)
-        && (!filterMarital || w.marital_status === filterMarital);
-    });
+    let list = workers.filter((w) =>
+      (!filterNat    || w.nationality        === filterNat)
+      && (!filterExp || w.new_or_experienced === filterExp)
+      && (!filterRel || w.religion           === filterRel)
+      && (!filterMarital || w.marital_status === filterMarital)
+    );
     if (sortKey === "salary_desc") list = [...list].sort((a, b) => b.salary - a.salary);
     if (sortKey === "salary_asc")  list = [...list].sort((a, b) => a.salary - b.salary);
     if (sortKey === "age_asc")     list = [...list].sort((a, b) => a.worker_age - b.worker_age);
     return list;
-  }, [workers, search, filterNat, filterExp, filterRel, filterMarital, sortKey]);
+  }, [workers, filterNat, filterExp, filterRel, filterMarital, sortKey]);
 
   const natCounts = useMemo(() => {
     const c: Record<string, number> = {};
@@ -110,7 +107,7 @@ export default function PublicWorkersPage() {
   );
 
   function clearFilters() {
-    setFilterNat(""); setFilterExp(""); setFilterRel(""); setFilterMarital(""); setSearch(""); setSortKey("default");
+    setFilterNat(""); setFilterExp(""); setFilterRel(""); setFilterMarital(""); setSortKey("default");
   }
 
   /* ── render ── */
@@ -134,14 +131,6 @@ export default function PublicWorkersPage() {
                 <MapPin size={10} /> الرياض، حي النهضة
               </p>
             </div>
-          </div>
-
-          {/* Center search (desktop) */}
-          <div className="hidden md:flex flex-1 max-w-sm mx-6 relative">
-            <Search size={15} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
-            <input type="text" placeholder="ابحث عن عاملة…" value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl pr-9 pl-4 py-2.5 text-sm outline-none focus:border-indigo-400 focus:bg-white transition-all" />
           </div>
 
           {/* Actions */}
@@ -182,16 +171,6 @@ export default function PublicWorkersPage() {
           <p className="text-lg text-blue-200 mb-10 max-w-xl mx-auto">
             تصفح سيرة ذاتية كاملة لكل عاملة · طلب فوري عبر واتساب
           </p>
-
-          {/* Search (mobile + hero desktop) */}
-          <div className="max-w-2xl mx-auto mb-10 md:hidden">
-            <div className="relative">
-              <Search size={18} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400" />
-              <input type="text" placeholder="ابحث باسم العاملة أو الجنسية…" value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="w-full bg-white rounded-2xl pr-12 pl-4 py-4 text-sm text-gray-800 outline-none shadow-2xl" />
-            </div>
-          </div>
 
           {/* Stats row */}
           <div className="flex flex-wrap justify-center gap-4">
@@ -479,11 +458,25 @@ function WorkerCard({ worker: w, wa, onOpen }: {
           {w.new_or_experienced === "experienced" ? "⭐ خبرة" : "🌱 جديدة"}
         </div>
 
-        {/* Video indicator */}
+        {/* Video badge — centered above salary, mobile-first */}
         {w.video_url && (
-          <div className="absolute top-[4.5rem] left-3 bg-black/60 text-white text-xs px-2 py-1 rounded-lg flex items-center gap-1">
-            <Play size={9} fill="white" className="text-white" /> فيديو
-          </div>
+          <a
+            href={w.video_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={e => e.stopPropagation()}
+            className="absolute left-3 flex items-center gap-1 text-white font-bold rounded-full whitespace-nowrap transition-all hover:scale-105 active:scale-95"
+            style={{
+              bottom: "2.4rem",
+              fontSize: 10,
+              padding: "4px 8px 4px 6px",
+              background: "linear-gradient(135deg,#f43f5e,#be123c)",
+              boxShadow: "0 3px 10px rgba(244,63,94,0.6)",
+            }}
+          >
+            <Play size={6} fill="white" />
+            شاهد المقابلة
+          </a>
         )}
 
         {/* Bottom overlay: name + salary */}
@@ -493,7 +486,7 @@ function WorkerCard({ worker: w, wa, onOpen }: {
             <span className="text-white/80 text-xs">{flag} {natLabel}</span>
             <span className="mr-auto inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold text-white"
               style={{ background: "rgba(245,158,11,0.85)", fontSize: 11 }}>
-              {w.salary.toLocaleString()} ر.س
+              {w.salary.toLocaleString("en-US")} ر.س
             </span>
           </div>
         </div>
@@ -534,7 +527,7 @@ function WorkerCard({ worker: w, wa, onOpen }: {
             style={{ borderColor: "#0F1C4D", color: "#0F1C4D" }}>
             عرض السيرة
           </button>
-          <a href={wa(`السلام عليكم، أرغب في الاستفسار عن العاملة: ${w.worker_name} — ${natLabel} — الراتب: ${w.salary.toLocaleString()} ر.س`)}
+          <a href={wa(`السلام عليكم، أرغب في الاستفسار عن العاملة: ${w.worker_name} — ${natLabel} — الراتب: ${w.salary.toLocaleString("en-US")} ر.س — رقم الجواز: ${w.passport_number}`)}
             target="_blank" rel="noopener noreferrer"
             className="flex-1 text-xs font-bold py-2.5 rounded-xl text-white text-center transition-all hover:opacity-90"
             style={{ background: "linear-gradient(135deg,#0F1C4D,#1B2B6B)" }}>
@@ -558,15 +551,24 @@ function CVModal({ worker: w, wa, onClose }: {
   const accent    = NAT_ACCENT[w.nationality] ?? { bg: "#EEF2FF", text: "#3730A3", border: "#A5B4FC" };
   const grad      = NAT_GRAD[w.nationality]   ?? "linear-gradient(160deg,#1B2B6B,#0f1a40)";
 
-  const waFull = `السلام عليكم، أرغب في الاستفسار عن العاملة:\n• الاسم: ${w.worker_name}\n• الجنسية: ${natLabel}\n• الراتب: ${w.salary.toLocaleString()} ر.س\n• الخبرة: ${w.new_or_experienced === "experienced" ? "لديها خبرة" : "جديدة"}\n• الديانة: ${RELIGION_LABELS[w.religion] ?? w.religion}`;
+  const waFull = `السلام عليكم، أرغب في الاستفسار عن العاملة:\n• الاسم: ${w.worker_name}\n• الجنسية: ${natLabel}\n• الراتب: ${w.salary.toLocaleString("en-US")} ر.س\n• الخبرة: ${w.new_or_experienced === "experienced" ? "لديها خبرة" : "جديدة"}\n• الديانة: ${RELIGION_LABELS[w.religion] ?? w.religion}`;
+
+  const [photoOpen, setPhotoOpen] = useState(false);
+  const photoSrc = w.photo_url || w.profile_photo;
 
   useEffect(() => {
-    const fn = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    const fn = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        if (photoOpen) setPhotoOpen(false);
+        else onClose();
+      }
+    };
     window.addEventListener("keydown", fn);
     return () => window.removeEventListener("keydown", fn);
-  }, [onClose]);
+  }, [onClose, photoOpen]);
 
   return (
+    <>
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4" dir="rtl">
       {/* Backdrop */}
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
@@ -584,7 +586,11 @@ function CVModal({ worker: w, wa, onClose }: {
         </button>
 
         {/* ── RIGHT: Photo panel (first in RTL DOM = right side) ── */}
-        <div className="relative shrink-0 w-full sm:w-[42%]" style={{ background: grad }}>
+        <div
+          className={`relative shrink-0 w-full sm:w-[42%] group/photo${photoSrc ? " cursor-pointer" : ""}`}
+          style={{ background: grad }}
+          onClick={() => photoSrc && setPhotoOpen(true)}
+        >
           {/* Mobile: aspect-ratio spacer */}
           <div className="sm:hidden" style={{ paddingBottom: "72%" }} />
           {/* Full-body photo fills entire panel */}
@@ -601,6 +607,18 @@ function CVModal({ worker: w, wa, onClose }: {
             {w.profile_photo && w.photo_url && (
               <div className="absolute top-4 right-4 w-16 h-16 rounded-xl overflow-hidden border-2 border-white shadow-lg">
                 <Image src={w.profile_photo} alt="" fill className="object-cover object-top" sizes="64px" />
+              </div>
+            )}
+
+            {/* Zoom hint overlay — visible on hover when image exists */}
+            {photoSrc && (
+              <div
+                className="absolute inset-0 flex items-center justify-center opacity-0 group-hover/photo:opacity-100 transition-all duration-300 pointer-events-none"
+                style={{ background: "rgba(0,0,0,0.28)" }}
+              >
+                <div className="bg-white/15 backdrop-blur-md border border-white/25 text-white font-bold px-5 py-2.5 rounded-full flex items-center gap-2 shadow-xl text-sm">
+                  <ZoomIn size={15} /> تكبير الصورة
+                </div>
               </div>
             )}
 
@@ -644,7 +662,7 @@ function CVModal({ worker: w, wa, onClose }: {
             {/* Salary — small chip */}
             <span className="mr-auto inline-flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-full text-white"
               style={{ background: "linear-gradient(135deg,#f59e0b,#b45309)" }}>
-              💰 {w.salary.toLocaleString()} ر.س / شهر
+              💰 {w.salary.toLocaleString("en-US")} ر.س / شهر
             </span>
           </div>
 
@@ -679,18 +697,38 @@ function CVModal({ worker: w, wa, onClose }: {
 
           {/* CTAs */}
           <div className="p-5 space-y-3 mt-auto">
+            {/* Video CTA — top priority when available */}
+            {w.video_url && (
+              <a href={w.video_url} target="_blank" rel="noopener noreferrer"
+                className="flex items-center justify-center gap-3 w-full py-4 rounded-2xl font-bold text-base text-white transition-all hover:opacity-90 active:scale-[.98]"
+                style={{
+                  background: "linear-gradient(135deg,#f43f5e,#be123c)",
+                  boxShadow: "0 8px 28px rgba(244,63,94,0.50)",
+                  position: "relative",
+                  overflow: "hidden",
+                }}>
+                {/* animated shine sweep */}
+                <span className="absolute inset-0 pointer-events-none"
+                  style={{
+                    background: "linear-gradient(105deg,transparent 40%,rgba(255,255,255,0.18) 50%,transparent 60%)",
+                    animation: "shine 2.8s linear infinite",
+                  }} />
+                <span className="flex items-center justify-center w-8 h-8 rounded-full bg-white/20 shrink-0">
+                  <Play size={16} fill="white" />
+                </span>
+                <span className="flex flex-col text-right">
+                  <span className="text-sm leading-tight">شاهد المقابلة الكاملة</span>
+                  <span className="text-white/70 text-xs font-normal leading-tight">مقابلة حقيقية مع العاملة</span>
+                </span>
+                <span className="mr-auto text-[10px] font-bold bg-white/20 px-2 py-0.5 rounded-full shrink-0">▶ HD</span>
+              </a>
+            )}
+
             <a href={wa(waFull)} target="_blank" rel="noopener noreferrer"
               className="flex items-center justify-center gap-2.5 w-full py-4 rounded-2xl text-white font-bold text-base transition-all hover:opacity-90 active:scale-[.98]"
               style={{ background: "linear-gradient(135deg,#22c55e,#15803d)", boxShadow: "0 8px 24px rgba(34,197,94,0.45)" }}>
               <MessageCircle size={20} /> استفسار فوري عبر واتساب
             </a>
-            {w.video_url && (
-              <a href={w.video_url} target="_blank" rel="noopener noreferrer"
-                className="flex items-center justify-center gap-2 w-full py-3.5 rounded-2xl font-bold text-sm text-white transition-all hover:opacity-90"
-                style={{ background: "linear-gradient(135deg,#6366f1,#4f46e5)" }}>
-                <Play size={16} fill="white" /> مشاهدة الفيديو
-              </a>
-            )}
           </div>
         </div>
       </div>
@@ -699,6 +737,206 @@ function CVModal({ worker: w, wa, onClose }: {
         @keyframes cvIn {
           from { opacity:0; transform:translateY(40px) scale(.96); }
           to   { opacity:1; transform:translateY(0)    scale(1); }
+        }
+        @keyframes shine {
+          0%   { transform: translateX(-100%); }
+          100% { transform: translateX(200%); }
+        }
+      `}</style>
+    </div>
+
+    {/* Full-screen photo viewer */}
+    {photoOpen && photoSrc && (
+      <PhotoViewer src={photoSrc} worker={w} onClose={() => setPhotoOpen(false)} />
+    )}
+    </>
+  );
+}
+
+/* ══════════════════════════════════════════════════════════════ */
+/* FULL-SCREEN PHOTO VIEWER                                       */
+/* ══════════════════════════════════════════════════════════════ */
+function PhotoViewer({ src, worker: w, onClose }: {
+  src: string; worker: Worker; onClose: () => void;
+}) {
+  const [showUI, setShowUI] = useState(true);
+  const [scale, setScale]   = useState(1);
+  const [dragY, setDragY]   = useState(0);
+
+  const containerRef = useRef<HTMLDivElement>(null);
+  const scaleRef     = useRef(1);
+  const dragYRef     = useRef(0);
+  const touchState   = useRef({ startY: 0, startDist: 0, startScale: 1, touches: 0 });
+
+  const natLabel = NATIONALITIES.find(n => n.value === w.nationality)?.label ?? w.nationality;
+  const flag     = FLAG[w.nationality] ?? "🌍";
+
+  /* keep refs in sync with state (for imperative handlers) */
+  useEffect(() => { scaleRef.current = scale; }, [scale]);
+  useEffect(() => { dragYRef.current = dragY; }, [dragY]);
+
+  /* escape key */
+  useEffect(() => {
+    const fn = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", fn);
+    return () => window.removeEventListener("keydown", fn);
+  }, [onClose]);
+
+  /* touch handlers — imperative so touchmove can use passive:false */
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+
+    function dist(t: TouchList) {
+      return Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
+    }
+
+    function onStart(e: TouchEvent) {
+      const ts = touchState.current;
+      ts.touches = e.touches.length;
+      if (e.touches.length === 1) {
+        ts.startY = e.touches[0].clientY;
+      } else if (e.touches.length === 2) {
+        ts.startDist  = dist(e.touches);
+        ts.startScale = scaleRef.current;
+      }
+    }
+
+    function onMove(e: TouchEvent) {
+      e.preventDefault();
+      const ts = touchState.current;
+      if (ts.touches === 1 && scaleRef.current <= 1) {
+        const dy = e.touches[0].clientY - ts.startY;
+        if (dy > 0) { dragYRef.current = dy; setDragY(dy); }
+      } else if (ts.touches === 2 && e.touches.length === 2) {
+        const ratio    = dist(e.touches) / ts.startDist;
+        const newScale = Math.min(4, Math.max(1, ts.startScale * ratio));
+        scaleRef.current = newScale;
+        setScale(newScale);
+      }
+    }
+
+    function onEnd() {
+      const ts = touchState.current;
+      if (ts.touches === 1 && dragYRef.current > 120) {
+        onClose();
+      } else {
+        dragYRef.current = 0;
+        setDragY(0);
+      }
+      ts.touches = 0;
+    }
+
+    el.addEventListener("touchstart", onStart,  { passive: true });
+    el.addEventListener("touchmove",  onMove,   { passive: false });
+    el.addEventListener("touchend",   onEnd);
+    return () => {
+      el.removeEventListener("touchstart", onStart);
+      el.removeEventListener("touchmove",  onMove);
+      el.removeEventListener("touchend",   onEnd);
+    };
+  }, [onClose]);
+
+  const bgOpacity  = Math.max(0.15, 0.88 - dragY / 350);
+  const imgOpacity = dragY > 150 ? Math.max(0.2, 1 - (dragY - 150) / 200) : 1;
+
+  return (
+    <div
+      className="fixed inset-0 z-[200] flex items-center justify-center"
+      style={{
+        background: `rgba(0,0,0,${bgOpacity})`,
+        backdropFilter: "blur(14px)",
+        WebkitBackdropFilter: "blur(14px)",
+        animation: "pvIn .3s cubic-bezier(.16,1,.3,1)",
+      } as React.CSSProperties}
+      onClick={() => setShowUI(v => !v)}
+    >
+      {/* ── Close button ── */}
+      <button
+        onClick={e => { e.stopPropagation(); onClose(); }}
+        className="absolute top-5 right-5 z-20 w-11 h-11 rounded-full flex items-center justify-center text-white transition-opacity duration-300"
+        style={{
+          background: "rgba(255,255,255,0.18)",
+          backdropFilter: "blur(8px)",
+          border: "1px solid rgba(255,255,255,0.28)",
+          opacity: showUI ? 1 : 0,
+          pointerEvents: showUI ? "auto" : "none",
+        }}
+      >
+        <X size={20} />
+      </button>
+
+      {/* ── Swipe hint ── */}
+      {showUI && scale <= 1 && dragY < 10 && (
+        <p className="absolute top-6 left-1/2 -translate-x-1/2 text-white/40 text-xs pointer-events-none select-none">
+          اسحب للأسفل للإغلاق
+        </p>
+      )}
+
+      {/* ── Image container ── */}
+      <div
+        ref={containerRef}
+        className="w-full h-full flex items-center justify-center"
+        style={{ touchAction: "none" }}
+        onClick={e => e.stopPropagation()}
+      >
+        <div
+          style={{
+            transform: `translateY(${dragY}px) scale(${scale})`,
+            transition: dragY > 0 ? "none" : "transform .25s ease",
+            willChange: "transform",
+          }}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={src}
+            alt={w.worker_name}
+            draggable={false}
+            style={{
+              maxHeight: "88vh",
+              maxWidth: "96vw",
+              objectFit: "contain",
+              borderRadius: 14,
+              display: "block",
+              userSelect: "none",
+              boxShadow: "0 24px 72px rgba(0,0,0,0.55)",
+              opacity: imgOpacity,
+              transition: dragY > 0 ? "none" : "opacity .25s ease",
+            }}
+          />
+        </div>
+      </div>
+
+      {/* ── Bottom info strip ── */}
+      <div
+        className="absolute bottom-0 inset-x-0 pointer-events-none"
+        style={{
+          background: "linear-gradient(to top,rgba(0,0,0,0.82) 0%,transparent 100%)",
+          padding: "52px 24px 32px",
+          opacity: showUI && dragY < 80 ? 1 : 0,
+          transform: showUI && dragY < 80 ? "translateY(0)" : "translateY(20px)",
+          transition: "opacity .3s ease, transform .3s ease",
+        }}
+        dir="rtl"
+      >
+        <p className="text-white font-bold text-xl leading-tight mb-2">{w.worker_name}</p>
+        <div className="flex items-center gap-3 flex-wrap">
+          <span className="text-white/70 text-sm">{flag} {natLabel}</span>
+          <span className="text-white/40 text-sm">·</span>
+          <span className="text-white/70 text-sm">{w.worker_age} سنة</span>
+          <span
+            className="mr-auto font-bold text-sm px-3 py-1 rounded-full"
+            style={{ background: "rgba(245,158,11,0.75)", color: "#fff" }}
+          >
+            {w.salary.toLocaleString("en-US")} ر.س / شهر
+          </span>
+        </div>
+      </div>
+
+      <style>{`
+        @keyframes pvIn {
+          from { opacity: 0; }
+          to   { opacity: 1; }
         }
       `}</style>
     </div>

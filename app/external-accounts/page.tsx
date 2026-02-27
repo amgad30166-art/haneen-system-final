@@ -9,7 +9,7 @@ import { toast } from "sonner";
 import {
   Building2, Plus, FileSpreadsheet, RefreshCw,
   DollarSign, TrendingUp, AlertCircle, CheckCircle,
-  X, Wallet, RotateCcw, Info,
+  X, Wallet, RotateCcw, Info, FileText,
 } from "lucide-react";
 import * as XLSX from "xlsx";
 import { USD_TO_SAR } from "@/lib/constants";
@@ -41,6 +41,16 @@ interface OfficeBalance {
   balance_sar: number;
 }
 
+interface StatementEntry {
+  date: string;
+  description: string;
+  debit_usd: number;   // we owe office (commission payable)
+  credit_usd: number;  // we paid / reversal
+  balance_usd: number; // running — positive = we owe them, negative = they owe us
+  type: "payable" | "reversal" | "payment";
+  contract_number?: string;
+}
+
 const PAYMENT_TYPES = [
   { value: "worker_payment", label: "دفع عاملة" },
   { value: "advance", label: "دفعة مقدمة" },
@@ -70,6 +80,11 @@ export default function ExternalAccountsPage() {
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState(defaultForm);
+
+  // Statement modal
+  const [statementOffice, setStatementOffice] = useState<OfficeBalance | null>(null);
+  const [statementEntries, setStatementEntries] = useState<StatementEntry[]>([]);
+  const [loadingStatement, setLoadingStatement] = useState(false);
 
   // Filters
   const [filterOffice, setFilterOffice] = useState("");
@@ -106,8 +121,107 @@ export default function ExternalAccountsPage() {
     setLoading(false);
   }
 
+  async function openStatement(office: OfficeBalance) {
+    setStatementOffice(office);
+    setLoadingStatement(true);
+    setStatementEntries([]);
+
+    const [{ data: txData }, { data: pmtData }] = await Promise.all([
+      supabase
+        .from("transactions")
+        .select("*, contracts(contract_number, client_name)")
+        .eq("external_office_id", office.id)
+        .in("transaction_type", ["EXTERNAL_COMMISSION_PAYABLE", "EXTERNAL_COMMISSION_REVERSAL"])
+        .order("created_at"),
+      supabase
+        .from("external_accounts")
+        .select("*")
+        .eq("external_office_id", office.id)
+        .order("payment_date"),
+    ]);
+
+    /* build unified entry list */
+    const raw: { date: string; entry: StatementEntry }[] = [];
+
+    (txData ?? []).forEach((t: any) => {
+      const isReversal = t.transaction_type === "EXTERNAL_COMMISSION_REVERSAL";
+      const amtUsd = t.currency === "USD" ? t.amount : t.amount / USD_TO_SAR;
+      raw.push({
+        date: t.created_at.split("T")[0],
+        entry: {
+          date: t.created_at.split("T")[0],
+          type: isReversal ? "reversal" : "payable",
+          description: isReversal
+            ? `استرداد ضمان — عقد ${t.contracts?.contract_number ?? ""}`
+            : `عمولة عقد — ${t.contracts?.client_name ?? ""}`,
+          contract_number: t.contracts?.contract_number,
+          debit_usd:  isReversal ? 0 : amtUsd,
+          credit_usd: isReversal ? amtUsd : 0,
+          balance_usd: 0, // filled below
+        },
+      });
+    });
+
+    (pmtData ?? []).forEach((p: any) => {
+      raw.push({
+        date: p.payment_date,
+        entry: {
+          date: p.payment_date,
+          type: "payment",
+          description: `دفعة — ${PAYMENT_TYPES.find((t) => t.value === p.payment_type)?.label ?? p.payment_type}${p.description ? " — " + p.description : ""}`,
+          debit_usd:  0,
+          credit_usd: p.amount_usd,
+          balance_usd: 0,
+        },
+      });
+    });
+
+    raw.sort((a, b) => a.date.localeCompare(b.date));
+
+    /* compute running balance */
+    let running = 0;
+    const entries = raw.map(({ entry }) => {
+      running += entry.debit_usd - entry.credit_usd;
+      return { ...entry, balance_usd: running };
+    });
+
+    setStatementEntries(entries);
+    setLoadingStatement(false);
+  }
+
   function handleInput(field: string, value: string) {
     setForm((prev) => ({ ...prev, [field]: value }));
+  }
+
+  function exportStatementExcel() {
+    if (!statementOffice || statementEntries.length === 0) return;
+
+    const rows = statementEntries.map((e) => ({
+      "التاريخ":                e.date,
+      "البيان":                 e.description,
+      "رقم العقد":              e.contract_number ?? "",
+      "مدين — نستحق له (USD)": e.debit_usd  > 0 ? e.debit_usd  : 0,
+      "دائن — دفعنا له (USD)": e.credit_usd > 0 ? e.credit_usd : 0,
+      "الرصيد الجاري (USD)":   e.balance_usd,
+      "الاتجاه":               e.balance_usd > 0 ? "علينا" : e.balance_usd < 0 ? "لنا" : "صفر",
+    }));
+
+    /* totals row */
+    rows.push({
+      "التاريخ":                "الإجمالي",
+      "البيان":                 "",
+      "رقم العقد":              "",
+      "مدين — نستحق له (USD)": statementEntries.reduce((s, e) => s + e.debit_usd,  0),
+      "دائن — دفعنا له (USD)": statementEntries.reduce((s, e) => s + e.credit_usd, 0),
+      "الرصيد الجاري (USD)":   statementOffice.balance_usd,
+      "الاتجاه":               statementOffice.balance_usd > 0 ? "متبقي علينا" : statementOffice.balance_usd < 0 ? "يُدين لنا" : "مسدد",
+    });
+
+    const ws = XLSX.utils.json_to_sheet(rows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "كشف حساب");
+    XLSX.writeFile(wb, `statement-${statementOffice.office_name}-${new Date().toISOString().split("T")[0]}.xlsx`);
+    toast.success("تم تصدير كشف الحساب");
   }
 
   async function handleSave() {
@@ -173,7 +287,7 @@ export default function ExternalAccountsPage() {
   const officesOwingUs = balances.filter((b) => b.balance_usd < 0).length;
 
   const fmt = (n: number) =>
-    n.toLocaleString("ar-SA", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
   return (
     <AuthLayout>
@@ -283,15 +397,23 @@ export default function ExternalAccountsPage() {
                 >
                   <div className="flex items-center justify-between mb-2">
                     <p className="font-bold text-sm">{b.office_name}</p>
-                    {owesUs ? (
-                      <span className="text-xs font-bold bg-purple-200 text-purple-800 px-2 py-0.5 rounded-full">
-                        مدين لنا
-                      </span>
-                    ) : settled ? (
-                      <div className="flex items-center gap-1 text-emerald-600 text-xs font-bold">
-                        <CheckCircle size={13} /> مسدد
-                      </div>
-                    ) : null}
+                    <div className="flex items-center gap-2">
+                      {owesUs ? (
+                        <span className="text-xs font-bold bg-purple-200 text-purple-800 px-2 py-0.5 rounded-full">
+                          مدين لنا
+                        </span>
+                      ) : settled ? (
+                        <div className="flex items-center gap-1 text-emerald-600 text-xs font-bold">
+                          <CheckCircle size={13} /> مسدد
+                        </div>
+                      ) : null}
+                      <button
+                        onClick={() => openStatement(b)}
+                        className="text-xs text-navy-500 hover:underline flex items-center gap-1"
+                      >
+                        <FileText size={12} /> كشف حساب
+                      </button>
+                    </div>
                   </div>
 
                   <div className="text-xs text-gray-500 space-y-0.5 mb-2">
@@ -417,7 +539,7 @@ export default function ExternalAccountsPage() {
                       {p.external_offices?.office_name ?? "—"}
                     </td>
                     <td className="p-3 text-gray-500">
-                      {new Date(p.payment_date).toLocaleDateString("ar-SA")}
+                      {new Date(p.payment_date).toLocaleDateString("en-US")}
                     </td>
                     <td className="p-3 font-bold text-emerald-600">
                       {p.amount_usd.toFixed(2)}
@@ -467,6 +589,108 @@ export default function ExternalAccountsPage() {
                 </tfoot>
               )}
             </table>
+          </div>
+        </div>
+      )}
+
+      {/* ── Account Statement Modal ───────────────────────────── */}
+      {statementOffice && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col">
+            {/* Header */}
+            <div className="flex items-center justify-between p-6 border-b border-gray-100">
+              <div>
+                <h2 className="text-lg font-bold text-navy-500">
+                  كشف حساب — {statementOffice.office_name}
+                </h2>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  المستحق الصافي: {statementOffice.total_owed_usd.toFixed(2)} USD &nbsp;|&nbsp;
+                  المدفوع: {statementOffice.total_paid_usd.toFixed(2)} USD &nbsp;|&nbsp;
+                  <span className={statementOffice.balance_usd > 0 ? "text-orange-600 font-bold" : statementOffice.balance_usd < 0 ? "text-purple-600 font-bold" : "text-emerald-600 font-bold"}>
+                    {statementOffice.balance_usd > 0
+                      ? `متبقي علينا: ${statementOffice.balance_usd.toFixed(2)} USD`
+                      : statementOffice.balance_usd < 0
+                      ? `يُدين لنا: ${Math.abs(statementOffice.balance_usd).toFixed(2)} USD`
+                      : "مسدد بالكامل ✓"}
+                  </span>
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <button onClick={exportStatementExcel} className="btn-secondary flex items-center gap-1.5 text-xs px-3 py-1.5">
+                  <FileSpreadsheet size={14} /> تحميل Excel
+                </button>
+                <button onClick={() => setStatementOffice(null)} className="text-gray-400 hover:text-gray-600">
+                  <X size={22} />
+                </button>
+              </div>
+            </div>
+
+            {/* Body */}
+            <div className="overflow-auto flex-1 p-4">
+              {loadingStatement ? (
+                <div className="flex justify-center py-12">
+                  <div className="w-8 h-8 border-4 border-navy-500 border-t-transparent rounded-full animate-spin" />
+                </div>
+              ) : statementEntries.length === 0 ? (
+                <p className="text-center text-gray-400 py-12">لا توجد حركات مسجلة لهذا المكتب</p>
+              ) : (
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="bg-navy-50 text-xs">
+                      <th className="text-right p-2">التاريخ</th>
+                      <th className="text-right p-2">البيان</th>
+                      <th className="text-right p-2 text-red-600">مدين (نستحق له)</th>
+                      <th className="text-right p-2 text-emerald-600">دائن (دفعنا له)</th>
+                      <th className="text-right p-2">الرصيد الجاري</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {statementEntries.map((e, i) => (
+                      <tr key={i} className="border-b border-gray-100 hover:bg-gray-50">
+                        <td className="p-2 text-gray-500 whitespace-nowrap">{e.date}</td>
+                        <td className="p-2">
+                          <p className="text-xs">{e.description}</p>
+                          {e.contract_number && (
+                            <p className="text-[10px] text-gray-400">عقد: {e.contract_number}</p>
+                          )}
+                        </td>
+                        <td className="p-2 text-red-600 font-bold">
+                          {e.debit_usd > 0 ? `${e.debit_usd.toFixed(2)} $` : "—"}
+                        </td>
+                        <td className="p-2 text-emerald-600 font-bold">
+                          {e.credit_usd > 0 ? `${e.credit_usd.toFixed(2)} $` : "—"}
+                        </td>
+                        <td className={`p-2 font-bold ${e.balance_usd > 0 ? "text-orange-600" : e.balance_usd < 0 ? "text-purple-600" : "text-emerald-600"}`}>
+                          {e.balance_usd === 0
+                            ? "صفر"
+                            : e.balance_usd > 0
+                            ? `${e.balance_usd.toFixed(2)} $ علينا`
+                            : `${Math.abs(e.balance_usd).toFixed(2)} $ لنا`}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  <tfoot>
+                    <tr className="bg-navy-50 font-bold text-sm border-t-2 border-navy-200">
+                      <td className="p-2" colSpan={2}>الإجمالي</td>
+                      <td className="p-2 text-red-600">
+                        {statementEntries.reduce((s, e) => s + e.debit_usd, 0).toFixed(2)} $
+                      </td>
+                      <td className="p-2 text-emerald-600">
+                        {statementEntries.reduce((s, e) => s + e.credit_usd, 0).toFixed(2)} $
+                      </td>
+                      <td className={`p-2 ${statementOffice.balance_usd > 0 ? "text-orange-600" : statementOffice.balance_usd < 0 ? "text-purple-600" : "text-emerald-600"}`}>
+                        {statementOffice.balance_usd === 0
+                          ? "مسدد ✓"
+                          : statementOffice.balance_usd > 0
+                          ? `${statementOffice.balance_usd.toFixed(2)} $ علينا`
+                          : `${Math.abs(statementOffice.balance_usd).toFixed(2)} $ لنا`}
+                      </td>
+                    </tr>
+                  </tfoot>
+                </table>
+              )}
+            </div>
           </div>
         </div>
       )}

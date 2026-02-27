@@ -575,7 +575,7 @@ export default function OrderDetailPage() {
           {order.return_date && (
             <div className="text-center">
               <label className="block text-sm mb-1">تاريخ الإرجاع</label>
-              <p className="text-sm font-bold text-red-600">{new Date(order.return_date).toLocaleDateString("ar-SA")}</p>
+              <p className="text-sm font-bold text-red-600">{new Date(order.return_date).toLocaleDateString("en-US")}</p>
             </div>
           )}
         </div>

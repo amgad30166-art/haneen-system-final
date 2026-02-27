@@ -125,7 +125,7 @@ export default function ContractTransactionsPage() {
 
   function exportToExcel() {
     const rows = transactions.map((t) => ({
-      التاريخ: new Date(t.created_at).toLocaleDateString("ar-SA"),
+      التاريخ: new Date(t.created_at).toLocaleDateString("en-US"),
       النوع: TRANSACTION_TYPE_LABELS[t.transaction_type] ?? t.transaction_type,
       "الاتجاه": t.direction === "IN" ? "وارد" : "صادر",
       المبلغ: t.amount,
@@ -139,7 +139,7 @@ export default function ContractTransactionsPage() {
   }
 
   const fmt = (n: number) =>
-    n.toLocaleString("ar-SA", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
   if (loading) {
     return (
@@ -264,14 +264,14 @@ export default function ContractTransactionsPage() {
                       >
                         <td className="p-3 text-gray-400 text-xs">{i + 1}</td>
                         <td className="p-3 text-gray-500 text-xs whitespace-nowrap">
-                          {new Date(t.created_at).toLocaleDateString("ar-SA", {
+                          {new Date(t.created_at).toLocaleDateString("en-US", {
                             year: "numeric",
                             month: "short",
                             day: "numeric",
                           })}
                           <br />
                           <span className="text-gray-300">
-                            {new Date(t.created_at).toLocaleTimeString("ar-SA", {
+                            {new Date(t.created_at).toLocaleTimeString("en-US", {
                               hour: "2-digit",
                               minute: "2-digit",
                             })}
@@ -294,7 +294,7 @@ export default function ContractTransactionsPage() {
                           </span>
                         </td>
                         <td className="p-3 font-bold">
-                          {t.amount.toLocaleString()} {t.currency}
+                          {t.amount.toLocaleString("en-US")} {t.currency}
                         </td>
                         <td
                           className={`p-3 font-bold ${
@@ -438,7 +438,7 @@ export default function ContractTransactionsPage() {
               {/* USD preview */}
               {form.currency === "USD" && form.amount && Number(form.amount) > 0 && (
                 <p className="text-xs text-gray-400 bg-gray-50 p-2 rounded-lg">
-                  = {(Number(form.amount) * USD_TO_SAR).toLocaleString("ar-SA", { minimumFractionDigits: 2 })} ر.س
+                  = {(Number(form.amount) * USD_TO_SAR).toLocaleString("en-US", { minimumFractionDigits: 2 })} ر.س
                 </p>
               )}
 

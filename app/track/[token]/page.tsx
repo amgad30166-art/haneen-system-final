@@ -230,7 +230,7 @@ export default function TrackingPage() {
             <p className="text-gray-600 mt-1">{info.client_name}</p>
             {info.contract_date && (
               <p className="text-xs text-gray-400 mt-1">
-                تاريخ العقد: {new Date(info.contract_date).toLocaleDateString("ar-SA")}
+                تاريخ العقد: {new Date(info.contract_date).toLocaleDateString("en-US")}
                 {" · "}
                 منذ {info.days_since_contract} يوم
               </p>
@@ -349,7 +349,7 @@ export default function TrackingPage() {
                   <p className="text-xs font-bold text-gray-500 mb-1">تاريخ الوصول</p>
                   <p className="text-sm font-bold text-emerald-600">
                     {info.arrival_date
-                      ? new Date(info.arrival_date).toLocaleDateString("ar-SA")
+                      ? new Date(info.arrival_date).toLocaleDateString("en-US")
                       : "—"}
                   </p>
                 </div>

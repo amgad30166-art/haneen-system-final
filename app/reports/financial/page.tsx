@@ -124,7 +124,7 @@ export default function FinancialDashboardPage() {
     const month = c.contract_date.substring(0, 7);
     const existing = monthlyMap.get(month) ?? {
       month,
-      monthLabel: new Date(month + "-01").toLocaleDateString("ar-SA", {
+      monthLabel: new Date(month + "-01").toLocaleDateString("en-US", {
         year: "numeric",
         month: "short",
       }),
@@ -145,7 +145,7 @@ export default function FinancialDashboardPage() {
 
   // ── Helpers ─────────────────────────────────────────────────
   const fmt = (n: number) =>
-    n.toLocaleString("ar-SA", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const fmtN = (n?: number | null) => (n != null ? fmt(n) : "—");
 
   // ── Excel Export ────────────────────────────────────────────
@@ -172,7 +172,7 @@ export default function FinancialDashboardPage() {
 
     // Monthly summary sheet
     const monthlyRows = monthlyData.map((m) => ({
-      الشهر: m.monthLabel,
+      الشهر: m.month,
       "عدد العقود": m.contracts,
       "المتوقع من مساند (ر.س)": m.expected,
       "المستلم فعلياً (ر.س)": m.actual,
@@ -308,7 +308,7 @@ export default function FinancialDashboardPage() {
                       tickFormatter={(v) => (v / 1000).toFixed(0) + "k"}
                     />
                     <Tooltip
-                      formatter={(value: number) => [`${value.toLocaleString()} ر.س`, ""]}
+                      formatter={(value: number) => [`${value.toLocaleString("en-US")} ر.س`, ""]}
                       contentStyle={{ fontFamily: "Cairo", direction: "rtl" }}
                     />
                     <Legend wrapperStyle={{ fontFamily: "Cairo" }} />
@@ -355,7 +355,7 @@ export default function FinancialDashboardPage() {
                           <td className="p-3">{c.client_name ?? "—"}</td>
                           <td className="p-3 text-gray-500">
                             {c.contract_date
-                              ? new Date(c.contract_date).toLocaleDateString("ar-SA")
+                              ? new Date(c.contract_date).toLocaleDateString("en-US")
                               : "—"}
                           </td>
                           <td className="p-3 font-bold">{fmtN(c.expected_from_musaned)}</td>
@@ -372,7 +372,7 @@ export default function FinancialDashboardPage() {
                           </td>
                           <td className="p-3 text-gray-500">
                             {c.musaned_transfer_date
-                              ? new Date(c.musaned_transfer_date).toLocaleDateString("ar-SA")
+                              ? new Date(c.musaned_transfer_date).toLocaleDateString("en-US")
                               : "—"}
                           </td>
                           <td

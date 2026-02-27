@@ -94,11 +94,11 @@ export default function CheckPage() {
               </div>
               <div>
                 <label className="text-gray-400">تاريخ العقد</label>
-                <p className="font-bold">{order.contract_date ? new Date(order.contract_date).toLocaleDateString("ar-SA") : "—"}</p>
+                <p className="font-bold">{order.contract_date ? new Date(order.contract_date).toLocaleDateString("en-US") : "—"}</p>
               </div>
               <div>
                 <label className="text-gray-400">تاريخ الوصول</label>
-                <p className="font-bold">{order.arrival_date ? new Date(order.arrival_date).toLocaleDateString("ar-SA") : "—"}</p>
+                <p className="font-bold">{order.arrival_date ? new Date(order.arrival_date).toLocaleDateString("en-US") : "—"}</p>
               </div>
             </div>
           </div>

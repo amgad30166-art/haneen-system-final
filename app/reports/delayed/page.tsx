@@ -287,7 +287,7 @@ export default function DelayedContractsPage() {
                       {r.contract_number ?? <span className="text-gray-400">—</span>}
                     </td>
                     <td className="p-3 text-gray-500">
-                      {new Date(r.contract_date).toLocaleDateString("ar-SA")}
+                      {new Date(r.contract_date).toLocaleDateString("en-US")}
                     </td>
                     <td className="p-3">
                       <StatusBadge status={r.order_status} type="order" />

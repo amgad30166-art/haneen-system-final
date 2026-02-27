@@ -63,7 +63,7 @@ export default function ContractDetailPage() {
   }
 
   const update = (key: string, value: any) => setContract((c) => c ? { ...c, [key]: value } : null);
-  const fmt = (n?: number | null) => n != null ? Number(n).toLocaleString("ar-SA", { minimumFractionDigits: 2 }) : "—";
+  const fmt = (n?: number | null) => n != null ? Number(n).toLocaleString("en-US", { minimumFractionDigits: 2 }) : "—";
   const trackingUrl = contract?.magic_token ? `${typeof window !== 'undefined' ? window.location.origin : ''}/track/${contract.magic_token}` : "";
 
   if (loading) return <AuthLayout><div className="flex justify-center py-20"><div className="w-10 h-10 border-4 border-navy-500 border-t-transparent rounded-full animate-spin" /></div></AuthLayout>;

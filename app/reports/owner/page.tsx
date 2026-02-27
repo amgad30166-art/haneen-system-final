@@ -147,7 +147,7 @@ export default function OwnerDashboardPage() {
       const m = c.contract_date.substring(0, 7);
       const existing = monthMap.get(m) ?? {
         month: m,
-        monthLabel: new Date(m + "-01").toLocaleDateString("ar-SA", { month: "short" }),
+        monthLabel: new Date(m + "-01").toLocaleDateString("en-US", { month: "short" }),
         contracts: 0, revenue: 0, profit: 0,
       };
       existing.contracts++;
@@ -184,7 +184,7 @@ export default function OwnerDashboardPage() {
   }
 
   const fmt = (n: number) =>
-    n.toLocaleString("ar-SA", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
   const totalOwedUSD = externalBalances.reduce((s, b) => s + (b.balance_usd || 0), 0);
   const yearOptions = [2023, 2024, 2025, 2026];
@@ -316,7 +316,7 @@ export default function OwnerDashboardPage() {
                     tickFormatter={(v) => (v / 1000).toFixed(0) + "k"}
                   />
                   <Tooltip
-                    formatter={(v: number) => [`${v.toLocaleString()} ر.س`, ""]}
+                    formatter={(v: number) => [`${v.toLocaleString("en-US")} ر.س`, ""]}
                     contentStyle={{ fontFamily: "Cairo", direction: "rtl" }}
                   />
                   <Legend wrapperStyle={{ fontFamily: "Cairo" }} />
@@ -448,7 +448,7 @@ export default function OwnerDashboardPage() {
                       <td className="p-3 font-bold text-navy-500">{c.contract_number}</td>
                       <td className="p-3 text-gray-500">
                         {c.contract_date
-                          ? new Date(c.contract_date).toLocaleDateString("ar-SA")
+                          ? new Date(c.contract_date).toLocaleDateString("en-US")
                           : "—"}
                       </td>
                       <td className="p-3 font-bold">{fmt(c.client_payment || 0)}</td>

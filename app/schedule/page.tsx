@@ -42,12 +42,12 @@ export default function SchedulePage() {
 
   const formatDate = (d: string) => {
     const date = new Date(d);
-    return date.toLocaleDateString("ar-SA", { weekday: "short", year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+    return date.toLocaleDateString("en-US", { weekday: "short", year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
   };
 
   return (
     <AuthLayout>
-      <PageHeader title="جدول المواعيد" subtitle="المواعيد القادمة للوصول والرجوع" />
+      <PageHeader title="جدول الوصول" subtitle="المواعيد القادمة للوصول والرجوع" />
 
       {loading ? (
         <div className="flex justify-center py-20">

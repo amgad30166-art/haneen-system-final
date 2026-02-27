@@ -73,9 +73,11 @@ export default function AnalyticsPage() {
       supabase
         .from("orders")
         .select("id, order_status, nationality, external_office, contract_date, arrival_date, created_at")
-        .gte("created_at", yearStart)
-        .lte("created_at", yearEnd)
-        .order("created_at"),
+        .not("contract_number", "is", null)
+        .not("contract_date", "is", null)
+        .gte("contract_date", yearStart)
+        .lte("contract_date", yearEnd)
+        .order("contract_date"),
       supabase
         .from("contracts")
         .select("id, contract_number, contract_date, cancellation_status, refund_amount, financial_status")
@@ -88,26 +90,32 @@ export default function AnalyticsPage() {
     setLoading(false);
   }
 
+  // ── Stats (declared first — used throughout) ─────────────────
+  const totalContracts = orders.length;
+  const activeContracts = orders.filter(
+    (o) => o.order_status !== "arrived" && o.order_status !== "cancelled"
+  ).length;
+
   // ── Contracts per month ──────────────────────────────────────
   const monthlyMap = new Map<string, number>();
   orders.forEach((o) => {
-    if (!o.created_at) return;
-    const m = o.created_at.substring(0, 7);
+    if (!o.contract_date) return;
+    const m = o.contract_date.substring(0, 7);
     monthlyMap.set(m, (monthlyMap.get(m) ?? 0) + 1);
   });
   const monthlyData = Array.from(monthlyMap.entries())
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([month, count]) => ({
       month,
-      monthLabel: new Date(month + "-01").toLocaleDateString("ar-SA", { month: "short" }),
+      monthLabel: new Date(month + "-01").toLocaleDateString("en-US", { month: "short" }),
       count,
     }));
 
   // ── Contracts per quarter ────────────────────────────────────
   const quarterMap = new Map<string, number>();
   orders.forEach((o) => {
-    if (!o.created_at) return;
-    const q = getYearQuarter(o.created_at);
+    if (!o.contract_date) return;
+    const q = getYearQuarter(o.contract_date);
     quarterMap.set(q, (quarterMap.get(q) ?? 0) + 1);
   });
   const quarterData = Array.from(quarterMap.entries())
@@ -122,7 +130,7 @@ export default function AnalyticsPage() {
   const nationalityData = Array.from(nationalityMap.entries()).map(([nat, count]) => ({
     name: NATIONALITIES.find((n) => n.value === nat)?.label ?? nat,
     value: count,
-    pct: orders.length > 0 ? ((count / orders.length) * 100).toFixed(1) : "0",
+    pct: totalContracts > 0 ? ((count / totalContracts) * 100).toFixed(1) : "0",
   }));
 
   // ── % per external office ────────────────────────────────────
@@ -137,7 +145,7 @@ export default function AnalyticsPage() {
     .map(([name, count]) => ({
       name,
       count,
-      pct: orders.length > 0 ? ((count / orders.length) * 100).toFixed(1) : "0",
+      pct: totalContracts > 0 ? ((count / totalContracts) * 100).toFixed(1) : "0",
     }));
 
   // ── Arrival report: arrived orders ──────────────────────────
@@ -161,14 +169,14 @@ export default function AnalyticsPage() {
   const arrivalMonthData = Array.from(arrivalMonthMap.entries())
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([month, count]) => ({
-      monthLabel: new Date(month + "-01").toLocaleDateString("ar-SA", { month: "short" }),
+      monthLabel: new Date(month + "-01").toLocaleDateString("en-US", { month: "short" }),
       count,
     }));
 
   // ── Cancellation rate ────────────────────────────────────────
   const cancelledCount = orders.filter((o) => o.order_status === "cancelled").length;
   const cancellationRate =
-    orders.length > 0 ? ((cancelledCount / orders.length) * 100).toFixed(1) : "0";
+    totalContracts > 0 ? ((cancelledCount / totalContracts) * 100).toFixed(1) : "0";
 
   // ── Refund rate by nationality ───────────────────────────────
   const refundNatMap = new Map<string, { total: number; refunded: number }>();
@@ -186,12 +194,6 @@ export default function AnalyticsPage() {
     rate: total > 0 ? ((refunded / total) * 100).toFixed(1) : "0",
   }));
 
-  // ── Stats ────────────────────────────────────────────────────
-  const totalOrders = orders.length;
-  const activeOrders = orders.filter(
-    (o) => o.order_status !== "arrived" && o.order_status !== "cancelled"
-  ).length;
-
   // ── Excel Export ─────────────────────────────────────────────
   function exportToExcel() {
     const wb = XLSX.utils.book_new();
@@ -200,7 +202,7 @@ export default function AnalyticsPage() {
     XLSX.utils.book_append_sheet(
       wb,
       XLSX.utils.json_to_sheet(
-        monthlyData.map((m) => ({ الشهر: m.monthLabel, "عدد الطلبات": m.count }))
+        monthlyData.map((m) => ({ الشهر: m.month, "عدد العقود": m.count }))
       ),
       "شهري"
     );
@@ -209,7 +211,7 @@ export default function AnalyticsPage() {
     XLSX.utils.book_append_sheet(
       wb,
       XLSX.utils.json_to_sheet(
-        quarterData.map((q) => ({ الربع: q.quarter, "عدد الطلبات": q.count }))
+        quarterData.map((q) => ({ الربع: q.quarter, "عدد العقود": q.count }))
       ),
       "ربعي"
     );
@@ -260,7 +262,7 @@ export default function AnalyticsPage() {
       XLSX.utils.json_to_sheet(
         refundByNat.map((r) => ({
           الجنسية: r.name,
-          "إجمالي الطلبات": r.total,
+          "إجمالي العقود": r.total,
           "الملغي/المسترد": r.refunded,
           "معدل الإلغاء %": r.rate,
         }))
@@ -323,14 +325,14 @@ export default function AnalyticsPage() {
           {/* ── Summary Stats ─────────────────────────────────── */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
             <StatCard
-              title="إجمالي الطلبات"
-              value={totalOrders}
+              title="إجمالي العقود"
+              value={totalContracts}
               icon={<BarChart3 size={24} className="text-navy-500" />}
               color="navy"
             />
             <StatCard
-              title="طلبات نشطة"
-              value={activeOrders}
+              title="عقود سارية"
+              value={activeContracts}
               icon={<TrendingUp size={24} className="text-blue-600" />}
               color="blue"
             />

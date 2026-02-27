@@ -631,13 +631,13 @@ export default function CVEditPage() {
           <div className="flex flex-wrap gap-6 text-sm text-gray-500">
             <div>
               <span className="font-bold">أُضيفت:</span>{" "}
-              {new Date(cv.created_at).toLocaleDateString("ar-SA", {
+              {new Date(cv.created_at).toLocaleDateString("en-US", {
                 year: "numeric", month: "short", day: "numeric",
               })}
             </div>
             <div>
               <span className="font-bold">آخر تعديل:</span>{" "}
-              {new Date(cv.updated_at).toLocaleDateString("ar-SA", {
+              {new Date(cv.updated_at).toLocaleDateString("en-US", {
                 year: "numeric", month: "short", day: "numeric",
               })}
             </div>

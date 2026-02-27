@@ -36,7 +36,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/reports/analytics", label: "التحليلات", icon: <TrendingUp size={20} />, roles: ["admin", "owner"] },
   { href: "/reports/delayed", label: "العقود المتأخرة", icon: <AlertTriangle size={20} />, roles: ["admin", "owner"] },
   { href: "/check", label: "البحث", icon: <Search size={20} />, roles: ["check_user"] },
-  { href: "/schedule", label: "جدول المواعيد", icon: <Truck size={20} />, roles: ["driver", "admin"] },
+  { href: "/schedule", label: "جدول الوصول", icon: <Truck size={20} />, roles: ["driver", "admin"] },
   { href: "/help/finance", label: "الدليل المالي", icon: <BookOpen size={20} />, roles: ["admin", "owner"] },
 ];
 
